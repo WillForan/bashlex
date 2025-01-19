@@ -14,15 +14,36 @@ def gatherheredocuments(tokenizer):
 
 
 def string_quote_removal(word):
-    """remove single quotes for heredoc
-    >>> string_quote_removal("'EOF'")
-    'EOF'
+    """
+    Remove surrounding quotes for heredoc token.
+    Other quotes are removed from the token unless escaped.
+
+    See definition in bash's source
+    https://github.com/bminor/bash/blob/master/subst.c#L11892
+
     >>> string_quote_removal("EOF")
     'EOF'
+    >>> string_quote_removal("'EOF'")
+    'EOF'
+    >>> string_quote_removal('"EOF"')
+    'EOF'
+    >>> string_quote_removal('HERE\\\\"DOC\\\\"')
+    'HERE"DOC"'
+    >>> string_quote_removal('"HERE"x"DOC"')
+    'HERExDOC'
+    
     """
-    quote_match = re.search("^'(.*)'$", word)
+    # remove paired quote from start and end
+    quote_match = re.search("^([\"'])(.*)\\1$", word)
     if quote_match:
-        word = quote_match.group(1)
+        word = quote_match.group(2)
+
+    # removing unescaped quotes. assumes matching quote pairs
+    # bash code would fail to parse otherwise (?)
+    word = re.sub("(?<=[^\\\\])[\"']","", word)
+
+    # escaped quotes in input become literal in returned token
+    word = word.replace('\\"','"').replace("\\'","'")
     return word
 
 
